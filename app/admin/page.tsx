@@ -9,7 +9,7 @@ const MAX_BODY = 300;
 
 interface FormState {
   title: string;
-  content: string; // Changed from 'body' to 'content' to match API
+  content: string; 
   author: string;
 }
 

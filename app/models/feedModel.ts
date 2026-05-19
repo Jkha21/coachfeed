@@ -16,7 +16,6 @@ const PostSchema = new Schema<IPost>(
 // Indexes for common query patterns
 PostSchema.index({ createdAt: -1 });               // for feed: latest posts first
 PostSchema.index({ author: 1, createdAt: -1 });    // for user-specific posts
-PostSchema.index({ _id: 1 });                      // default, but explicit for clarity
 
 const postModel: Model<IPost> =
   mongoose.models.postModel || mongoose.model<IPost>("postModel", PostSchema);

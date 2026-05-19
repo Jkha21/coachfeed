@@ -1,25 +1,25 @@
-import 'dotenv/config'
+import "dotenv/config";
 import mongoose from "mongoose";
 
-// Track connection state
-let isConnected = false;
-
-export async function dbConnect() {
-  if (isConnected) {
-    console.log("Using existing database connection");
+export async function dbConnect(): Promise<void> {
+  if (mongoose.connection.readyState === 1) {
+    console.log("✅ Using existing MongoDB connection");
     return;
   }
-``
+
   if (!process.env.MONGODB_URI) {
-    throw new Error("Please define the MONGODB_URI environment variable");
+    throw new Error(
+      "Missing MONGODB_URI — add it to your .env.local file"
+    );
   }
 
   try {
-    const db = await mongoose.connect(process.env.MONGODB_URI);
-    isConnected = db.connections[0].readyState === 1;
-    console.log("New database connection established");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+    });
+    console.log("✅ New MongoDB connection established");
   } catch (error) {
-    console.error("Database connection failed:", error);
+    console.error("❌ MongoDB connection failed:", error);
     throw error;
   }
 }

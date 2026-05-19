@@ -1,19 +1,17 @@
 // app/api/feed/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getRedisClient } from '@/lib/redis';
 import Feed from '@/models/feedModel';
 import { validatePost, PostInput } from '@/validators/feedValidator';
+import { redisGet, redisSet, redisDel } from '@/lib/redis';
 
 const CACHE_TTL = 300; // 5 minutes
+const CACHE_KEY = 'feeds:all';
 
 // GET /api/feed - Get all feeds
 export async function GET(request: NextRequest) {
     try {
-        const redis = await getRedisClient();
-        const cacheKey = 'feeds:all';
-        
-        // Check Redis cache first
-        const cachedFeeds = await redis.get(cacheKey);
+        // Use your wrapper to safely check Redis cache
+        const cachedFeeds = await redisGet(CACHE_KEY);
         
         if (cachedFeeds) {
             return NextResponse.json({
@@ -23,14 +21,14 @@ export async function GET(request: NextRequest) {
             });
         }
         
-        // Get from database
+        // Get from database on cache miss
         const feeds = await Feed.find()
             .sort({ createdAt: -1 })
             .limit(50)
             .lean();
         
-        // Store in Redis cache
-        await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(feeds));
+        // Use your wrapper to safely store in Redis cache
+        await redisSet(CACHE_KEY, JSON.stringify(feeds), CACHE_TTL);
         
         return NextResponse.json({
             success: true,
@@ -72,19 +70,18 @@ export async function POST(request: NextRequest) {
             author
         });
         
-        // Invalidate Redis cache
-        const redis = await getRedisClient();
-        await redis.del('feeds:all');
+        // Use your wrapper to safely invalidate the Redis cache
+        await redisDel(CACHE_KEY);
         
         // Emit WebSocket event for real-time update
         try {
             const { getIO } = await import('@/lib/socket');
             const io = getIO();
             if (io) {
-                io.to('feed-room').emit('new_feed', newFeed);
+                io.to('feed-room').emit('new_feed_item', newFeed);
+                console.log('✅ WebSocket event emitted')
             }
         } catch (err) {
-            // WebSocket not available, skip real-time emit
             console.log('WebSocket event skipped');
         }
         
