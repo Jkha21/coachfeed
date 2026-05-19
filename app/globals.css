@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  /* Custom colors */
+  --color-bg: #0d0e11;
+  --color-surface: #14161b;
+  --color-surface2: #1c1f27;
+  --color-border: rgba(255,255,255,0.07);
+  --color-border-accent: rgba(255,255,255,0.14);
+  --color-text: #e8e9ed;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #9ca3af;
+  --color-accent: #e8593c;
+  --color-accent-dim: rgba(232,89,60,0.12);
+  --color-green: #1D9E75;
+  --color-green-dim: rgba(29,158,117,0.12);
+  
+  /* Font families */
+  --font-syne: 'Syne', sans-serif;
+  --font-dm-mono: 'DM Mono', monospace;
+  
+  /* Custom font size */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.75rem;
+  
+  /* Animations */
+  --animate-slide-in: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  --animate-pulse-dot: pulseDot 2s ease-in-out infinite;
+  
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 }
 
+/* Custom utilities for your component classes */
+@utility bg-bg {
+  background-color: var(--color-bg);
+}
+@utility bg-surface {
+  background-color: var(--color-surface);
+}
+@utility bg-surface2 {
+  background-color: var(--color-surface2);
+}
+@utility border-border {
+  border-color: var(--color-border);
+}
+@utility border-border-accent {
+  border-color: var(--color-border-accent);
+}
+@utility text-text {
+  color: var(--color-text);
+}
+@utility text-text-muted {
+  color: var(--color-text-muted);
+}
+@utility text-text-dim {
+  color: var(--color-text-dim);
+}
+@utility text-accent {
+  color: var(--color-accent);
+}
+@utility bg-accent {
+  background-color: var(--color-accent);
+}
+@utility bg-accent-dim {
+  background-color: var(--color-accent-dim);
+}
+@utility bg-green {
+  background-color: var(--color-green);
+}
+@utility bg-green-dim {
+  background-color: var(--color-green-dim);
+}
+@utility font-mono {
+  font-family: var(--font-dm-mono);
+}
+@utility font-syne {
+  font-family: var(--font-syne);
+}
+@utility text-2xs {
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+@utility animate-slide-in {
+  animation: var(--animate-slide-in);
+}
+@utility animate-shimmer {
+  animation: var(--animate-shimmer);
+}
+@utility animate-pulse-dot {
+  animation: var(--animate-pulse-dot);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-syne);
+  min-height: 100vh;
 }
