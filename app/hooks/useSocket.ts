@@ -26,14 +26,19 @@ function getSocket(): Socket {
 }
 
 interface UseSocketOptions {
-  onNewFeedItem: (item: FeedItem) => void;
+  onFeedCreated: (item: FeedItem) => void;
+  onFeedUpdated: (item: FeedItem) => void;
+  onFeedDeleted: (payload: { _id: string }) => void;
 }
 
-export function useSocket({ onNewFeedItem }: UseSocketOptions): SocketStatus {
+export function useSocket({ onFeedCreated, onFeedUpdated, onFeedDeleted }: UseSocketOptions): SocketStatus {
   const [status, setStatus] = useState<SocketStatus>("connecting");
 
-  const callbackRef = useRef(onNewFeedItem);
-  useEffect(() => { callbackRef.current = onNewFeedItem; }, [onNewFeedItem]);
+  // Keep references to all callbacks to avoid event listener thrashing
+  const callbacksRef = useRef({ onFeedCreated, onFeedUpdated, onFeedDeleted });
+  useEffect(() => { 
+    callbacksRef.current = { onFeedCreated, onFeedUpdated, onFeedDeleted }; 
+  }, [onFeedCreated, onFeedUpdated, onFeedDeleted]);
 
   const seenIds = useRef<Set<string>>(new Set());
 
@@ -50,22 +55,41 @@ export function useSocket({ onNewFeedItem }: UseSocketOptions): SocketStatus {
       setStatus("connected");
     };
 
-    const onNewFeedItemEvent = (item: FeedItem) => {
+    // 1. Handle Insertion from Change Stream
+    const handleFeedCreated = (item: FeedItem) => {
       if (!item?._id) return;
       if (seenIds.current.has(item._id)) {
-        console.warn(`[Socket] Duplicate event ignored — id: ${item._id}`);
+        console.warn(`[Socket] Duplicate creation event ignored — id: ${item._id}`);
         return;
       }
       seenIds.current.add(item._id);
-      callbackRef.current(item);
+      callbacksRef.current.onFeedCreated(item);
     };
 
-    socket.on("connect",          onConnect);
+    // 2. Handle Modification from Change Stream
+    const handleFeedUpdated = (item: FeedItem) => {
+      if (!item?._id) return;
+      callbacksRef.current.onFeedUpdated(item);
+    };
+
+    // 3. Handle Deletion from Change Stream
+    const handleFeedDeleted = (payload: { _id: string }) => {
+      if (!payload?._id) return;
+      // Allow re-creation tracking if an item with the same ID gets re-inserted later
+      seenIds.current.delete(payload._id); 
+      callbacksRef.current.onFeedDeleted(payload);
+    };
+
+    socket.on("connect",         onConnect);
     socket.on("disconnect",       onDisconnect);
     socket.on("reconnecting",     onReconnecting);
     socket.on("reconnect",        onReconnected);
     socket.on("joined",           onJoined);
-    socket.on("new_feed_item",    onNewFeedItemEvent);
+    
+    // Wire up listeners matching your backend change stream events
+    socket.on("feed_created",     handleFeedCreated);
+    socket.on("feed_updated",     handleFeedUpdated);
+    socket.on("feed_deleted",     handleFeedDeleted);
 
     if (socket.connected) setStatus("connected");
 
@@ -75,7 +99,10 @@ export function useSocket({ onNewFeedItem }: UseSocketOptions): SocketStatus {
       socket.off("reconnecting",  onReconnecting);
       socket.off("reconnect",     onReconnected);
       socket.off("joined",        onJoined);
-      socket.off("new_feed_item", onNewFeedItemEvent);
+      
+      socket.off("feed_created",  handleFeedCreated);
+      socket.off("feed_updated",  handleFeedUpdated);
+      socket.off("feed_deleted",  handleFeedDeleted);
     };
   }, []);
 
